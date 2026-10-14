@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1
+
+# ==============================================================================
+# Dockerfile de desenvolvimento — usado pelo docker-compose.yml (modelo:
+# matilha-app). Instala tudo (incluindo devDependencies), não faz build e roda
+# `next dev`. O código-fonte é montado por volume no compose, então mudanças
+# no host refletem instantaneamente.
+# ==============================================================================
+
+FROM node:20-alpine
+# openssl: o schema-engine do Prisma (usado por `prisma migrate dev`) precisa
+# dele pra rodar no Alpine.
+# tzdata: fixa o fuso horário do processo (ver ENV TZ abaixo).
+RUN apk add --no-cache libc6-compat openssl tzdata
+# Sem isso, o container roda em UTC por padrão (Alpine).
+ENV TZ=America/Sao_Paulo
+WORKDIR /app
+
+# Necessárias só para o Prisma conseguir ler o schema durante o install/CLI —
+# não conecta de fato nesta etapa.
+ENV DATABASE_URL="postgresql://postgres:postgres@db:5432/caixa_comum?schema=public"
+ENV DIRECT_URL="postgresql://postgres:postgres@db:5432/caixa_comum?schema=public"
+COPY package.json package-lock.json ./
+COPY prisma ./prisma
+RUN npm ci
+
+EXPOSE 3000
+CMD ["npm", "run", "dev"]

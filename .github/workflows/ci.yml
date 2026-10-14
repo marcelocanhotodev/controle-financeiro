@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Lint, type-check, testes, build e e2e
+    runs-on: ubuntu-latest
+    # Postgres efêmero, local a este job — existe só durante a execução do
+    # workflow e é descartado no final. Nunca é o banco de produção: o CI
+    # não faz deploy nem altera dados reais (isso é do deploy-migrations.yml).
+    # Modelo: .github/workflows/ci.yml do matilha-app.
+    env:
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/caixa_comum_ci"
+      DIRECT_URL: "postgresql://postgres:postgres@localhost:5432/caixa_comum_ci"
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: caixa_comum_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Checagem de tipos
+        run: npm run type-check
+
+      - name: Aplicar migrations no Postgres efêmero
+        run: npx prisma migrate deploy
+
+      - name: Testes (Vitest)
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Acréscimo ao CI do matilha-app: testes de ponta a ponta. Só Chromium
+      # (os dois projetos do playwright.config.ts usam o mesmo navegador), com
+      # o cache do Playwright para não baixar o navegador a cada execução.
+      - name: Cache do Playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Instalar Chromium do Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Testes de ponta a ponta (Playwright)
+        run: npm run test:e2e
+        env:
+          CI: "true"
+
+      - name: Relatório do Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

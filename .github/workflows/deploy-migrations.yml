@@ -1,0 +1,47 @@
+name: Deploy migrations (produção)
+
+# Dispara só em push direto na main (nunca em Pull Request) e aplica
+# `prisma migrate deploy` direto no Supabase de produção — deliberadamente
+# separado do ci.yml, que nunca toca dados reais. Roda em paralelo ao
+# build/deploy da Vercel para o mesmo push. Modelo: matilha-app.
+#
+# Fica aqui desde a estrutura-base (sem migrações ainda, o passo só confirma
+# que não há nada pendente) para o pipeline já estar provado quando
+# usuarios-e-grupos trouxer as primeiras tabelas.
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  # Sem cancel-in-progress: cancelar uma migration de produção no meio é mais
+  # arriscado que deixar a fila esperar a anterior terminar.
+  group: deploy-migrations-producao
+  cancel-in-progress: false
+
+jobs:
+  deploy-migrations:
+    name: Migrations em produção
+    runs-on: ubuntu-latest
+    env:
+      # Segredos dedicados a este workflow — nunca os mesmos nomes usados pelo
+      # ci.yml (que apontam pro Postgres efêmero do próprio job), para nenhum
+      # dos dois workflows ler a credencial errada por coincidência de nome.
+      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.PROD_DIRECT_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Aplicar migrations pendentes em produção
+        run: npx prisma migrate deploy

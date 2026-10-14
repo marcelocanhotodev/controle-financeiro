@@ -1,0 +1,33 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# env
+# Cobre qualquer variação (.env, .env.local, .env.production etc.) — só o
+# .env.example (sem valores reais) fica versionado.
+.env*
+!.env.example
+
+# testes
+/playwright-report/
+/test-results/
+/blob-report/
+/playwright/.cache/
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# prisma
+/prisma/migrations/**/migration.sql.bak

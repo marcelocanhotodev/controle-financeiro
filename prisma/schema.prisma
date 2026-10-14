@@ -1,0 +1,37 @@
+// ============================================================================
+// Caixa Comum — schema Prisma / PostgreSQL
+//
+// Padrão de isolamento: shared schema + grupoId. Toda tabela de dados de um
+// grupo carrega `grupoId` e um índice sobre ela (ver openspec/project.md).
+//
+// IDs: toda PK é Int autoincrement — nunca cuid/uuid. Tabelas de vínculo usam
+// chave composta, como UsuarioClinica no matilha-app.
+//
+// Nomes de models, campos e enums em português; tabelas em snake_case no
+// plural via @@map.
+//
+// Change estrutura-base: só generator e datasource. Cada change seguinte
+// (usuarios-e-grupos, lancamentos) acrescenta os próprios models e a própria
+// migração.
+// ============================================================================
+
+generator client {
+  provider      = "prisma-client-js"
+  // "native" cobre o ambiente local (Windows/macOS/Linux, fora de container).
+  // "linux-musl-openssl-3.0.x" cobre o Alpine do Dockerfile.dev
+  // (node:20-alpine). "rhel-openssl-3.0.x" cobre o runtime serverless da
+  // Vercel (Amazon Linux). Mesmos alvos do matilha-app — evita depender da
+  // autodetecção de OpenSSL do Prisma em build time.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Usada só por `prisma migrate` — nunca pelo Prisma Client em runtime.
+  // Precisa ser uma conexão direta (porta 5432), não o connection pooler do
+  // Supabase (PgBouncer, modo transaction), que não suporta os prepared
+  // statements do Prisma Migrate. Em dev local, é igual a DATABASE_URL. Ver
+  // docs/deploy-producao.md.
+  directUrl = env("DIRECT_URL")
+}

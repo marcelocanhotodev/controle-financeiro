@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   Tokens de cor do protótipo (openspec/prototype/Caixa Comum.html).
+   O tema segue o aparelho (prefers-color-scheme) — capability estrutura-app,
+   Requirement "Tema claro e escuro". O tailwind.config.ts aponta para estas
+   variáveis, então as mesmas classes servem nos dois temas.
+   ========================================================================== */
+:root {
+  color-scheme: light;
+  --bg: #eef1f0;
+  --surface: #ffffff;
+  --surface-2: #e7ecea;
+  --fg: #15201d;
+  --muted: #586763;
+  --line: #d2dad7;
+  --accent: #2b47c9;
+  --accent-fg: #ffffff;
+  --accent-soft: #e2e7fa;
+  --in: #0b7249;
+  --in-soft: #dcf0e6;
+  --out: #b0302a;
+  --out-soft: #f7e1de;
+  --on-sem: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #0f1513;
+    --surface: #171f1c;
+    --surface-2: #202a26;
+    --fg: #e7eeeb;
+    --muted: #95a59f;
+    --line: #2b3834;
+    --accent: #93a5ff;
+    --accent-fg: #0e1330;
+    --accent-soft: #222b55;
+    --in: #4fd39a;
+    --in-soft: #15332a;
+    --out: #ff8a80;
+    --out-soft: #3a1f1d;
+    --on-sem: #0e1512;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-fundo font-sans text-texto;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display font-bold;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  /* Foco visível em todo elemento interativo — Requirement "Acessibilidade",
+     Scenario "Teclado". */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+}
+
+@layer components {
+  /* Quadro com borda, como o `.panel` do protótipo. `min-w-0` deixa o
+     conteúdo largo (tabelas, gráfico) rolar dentro do quadro em vez de
+     empurrar a página — Requirement "Layout responsivo". */
+  .quadro {
+    @apply min-w-0 rounded-[10px] border border-linha bg-surface p-[18px];
+  }
+
+  .rotulo {
+    @apply text-xs font-semibold uppercase tracking-[0.06em] text-suave;
+  }
+
+  .num {
+    @apply font-mono;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Fora de @layer de propósito: classes em @layer só entram no CSS final se
+   algum arquivo as usa, e esta é a regra de layout que as tabelas e o
+   gráfico das próximas changes vão usar — precisa existir desde já. */
+.quadro-rolavel {
+  overflow-x: auto;
+}
