@@ -53,9 +53,11 @@ services:
       - ./:/app
       - /app/node_modules
       - /app/.next
-    # Gera o Prisma Client toda vez que sobe (schema pode ter mudado) e então
-    # inicia o servidor de dev com hot reload.
-    command: sh -c "npx prisma generate && npm run dev"
+    # Ao subir: gera o Prisma Client (o schema pode ter mudado), aplica as
+    # migrações pendentes no banco do compose (num banco novo, cria as
+    # tabelas) e inicia o servidor de dev com hot reload. Dados de exemplo:
+    # `docker compose exec app npm run db:seed`.
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run dev"
 
   # Interface web para consultar/editar os dados do Postgres.
   # Acesse em http://localhost:5050 (login: admin@admin.com / admin).

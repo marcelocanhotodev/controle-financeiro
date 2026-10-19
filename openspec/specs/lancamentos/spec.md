@@ -1,7 +1,9 @@
+# lancamentos Specification
+
 ## Purpose
 Registro, consulta e exclusão das entradas e saídas de dinheiro de um grupo.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Registro de lançamento
 O sistema SHALL permitir que qualquer membro registre uma entrada ou uma saída no grupo ativo, informando tipo, descrição, valor, categoria e data.
@@ -107,8 +109,10 @@ O sistema SHALL listar os lançamentos do grupo ativo no mês escolhido, do mais
 #### Scenario: Autor que saiu do grupo
 - GIVEN Pedro tem lançamentos no grupo e deixa de participar dele
 - WHEN a lista é exibida
-- THEN os lançamentos dele continuam existindo
-- AND o autor aparece como "Ex-membro"
+- THEN os lançamentos dele continuam na lista
+- AND o autor aparece como "Pedro (ex-membro)"
+- AND essas linhas aparecem com opacidade de 70%
+- AND o texto "(ex-membro)" identifica a linha sem depender da opacidade
 
 #### Scenario: Tela grande
 - GIVEN uma tela de desktop
@@ -137,6 +141,18 @@ O sistema SHALL permitir filtrar a lista por tipo e por pessoa sem recarregar a 
 - WHEN a pessoa escolhe "Ana" no filtro Pessoa
 - THEN só os lançamentos de Ana aparecem
 
+#### Scenario: Ex-membros no mesmo filtro
+- GIVEN o mês tem lançamentos de Ana e Marcelo, que participam do grupo, e de Pedro, que saiu
+- WHEN a pessoa abre o filtro Pessoa
+- THEN vê, num único filtro, "Ana", "Marcelo" e "Pedro (ex-membro)"
+- AND escolher "Pedro (ex-membro)" mostra só os lançamentos de Pedro
+
+#### Scenario: Pessoa da URL que não é do grupo
+- GIVEN o endereço da aba traz no filtro Pessoa alguém que não participa do grupo ativo nem tem lançamentos nele
+- WHEN a lista é exibida
+- THEN o filtro Pessoa fica em "Todos"
+- AND a lista mostra os lançamentos do mês sem esse filtro
+
 #### Scenario: Nada encontrado
 - GIVEN filtros que não casam com nenhum lançamento
 - WHEN a lista é exibida
@@ -146,6 +162,11 @@ O sistema SHALL permitir filtrar a lista por tipo e por pessoa sem recarregar a 
 - GIVEN a pessoa filtrou "Saídas" de "Ana" em "Finanças da Casa"
 - WHEN ela troca para "Viagem de Dezembro" no seletor do topo
 - THEN os filtros de tipo e pessoa voltam para "Todos"
+
+#### Scenario: Grupo trocado depois de uma remoção
+- GIVEN a pessoa filtrou "Ana" em "Viagem de Dezembro" e foi removida desse grupo
+- WHEN ela abre a aba Lançamentos e o sistema a leva para outro grupo dela
+- THEN o filtro Pessoa não esconde os lançamentos do novo grupo
 
 ### Requirement: Totais da lista
 O sistema SHALL mostrar no rodapé da lista a quantidade de lançamentos e os totais de entradas e saídas do que está filtrado.
@@ -175,6 +196,11 @@ O sistema SHALL permitir que o autor exclua o próprio lançamento e que um Admi
 - GIVEN Marcelo é Administrador e vê um lançamento de Ana
 - WHEN ele toca em excluir
 - THEN o lançamento sai da lista
+
+#### Scenario: Nome acessível do botão excluir
+- GIVEN a lista mostra um lançamento "Mercado" que a pessoa pode excluir
+- WHEN um leitor de tela chega ao botão de excluir dessa linha
+- THEN o nome acessível do botão inclui a descrição do lançamento, como "Excluir Mercado"
 
 ### Requirement: Desfazer exclusão
 O sistema SHALL oferecer a ação "Desfazer" por 6 segundos depois de uma exclusão.

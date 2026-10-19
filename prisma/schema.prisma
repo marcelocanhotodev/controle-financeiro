@@ -11,8 +11,7 @@
 // plural via @@map.
 //
 // estrutura-base: generator e datasource. usuarios-e-grupos: Usuario, Grupo,
-// Participacao, Convite e TokenSenha. lancamentos acrescenta os próprios
-// models e a própria migração.
+// Participacao, Convite e TokenSenha. lancamentos: Lancamento.
 // ============================================================================
 
 generator client {
@@ -72,6 +71,7 @@ model Usuario {
   participacoes   Participacao[]
   convitesCriados Convite[]      @relation("ConviteCriadoPor")
   tokensSenha     TokenSenha[]
+  lancamentos     Lancamento[]
 
   @@map("usuarios")
 }
@@ -84,6 +84,7 @@ model Grupo {
 
   participacoes Participacao[]
   convites      Convite[]
+  lancamentos   Lancamento[]
 
   @@map("grupos")
 }
@@ -143,4 +144,38 @@ model TokenSenha {
   @@index([usuarioId])
   @@index([conviteId])
   @@map("tokens_senha")
+}
+
+// ============================================================================
+// lancamentos — entradas e saídas do grupo. Ver
+// openspec/changes/lancamentos/design.md.
+// ============================================================================
+
+enum TipoLancamento {
+  ENTRADA
+  SAIDA
+}
+
+model Lancamento {
+  id         Int            @id @default(autoincrement())
+  grupoId    Int
+  autorId    Int
+  tipo       TipoLancamento
+  descricao  String
+  // Sempre positivo (CHECK na migração); o sinal vem de `tipo`. Somas só no
+  // Postgres ou com Prisma.Decimal, nunca com number.
+  valor      Decimal        @db.Decimal(10, 2)
+  categoria  String
+  // Dia do calendário de America/Sao_Paulo, sem horário.
+  data       DateTime       @db.Date
+  criadoEm   DateTime       @default(now())
+  // Exclusão reversível por 60 s; o cron apaga de vez depois de 24 h. Toda
+  // leitura filtra excluidoEm = null.
+  excluidoEm DateTime?
+
+  grupo Grupo   @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  autor Usuario @relation(fields: [autorId], references: [id], onDelete: Restrict)
+
+  @@index([grupoId, data(sort: Desc)])
+  @@map("lancamentos")
 }

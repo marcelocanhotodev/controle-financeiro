@@ -2,16 +2,18 @@
 
 // Seletor de grupo do topo (capability grupos, Requirements "Lista de grupos
 // e grupo ativo" e "Seletor de grupo e pessoa no topo"). A troca grava o
-// grupo ativo no banco e recarrega os dados da tela, sem sair e entrar.
+// grupo ativo no banco e recarrega os dados da tela, sem sair e entrar, e
+// tira da URL os filtros do grupo anterior.
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAviso } from "@/components/aviso";
 import { trocarGrupoAtivo } from "@/lib/actions/grupo";
 import { CLASSE_CONTROLE } from "@/components/campo";
 
 export function SeletorGrupo({ grupos, grupoAtivoId }: { grupos: { id: number; nome: string }[]; grupoAtivoId: number }) {
   const router = useRouter();
+  const pathname = usePathname();
   const avisar = useAviso();
   const [selecionado, setSelecionado] = useState(grupoAtivoId);
   const [trocando, iniciarTroca] = useTransition();
@@ -26,6 +28,10 @@ export function SeletorGrupo({ grupos, grupoAtivoId }: { grupos: { id: number; n
         avisar(resultado.erro ?? "Não foi possível trocar de grupo.");
         return;
       }
+      // Sem a query: mês e filtros (?mes, ?tipo, ?autor) eram do grupo
+      // anterior (capability lancamentos, Scenario "Trocar de grupo zera os
+      // filtros").
+      router.replace(pathname);
       router.refresh();
     });
   }
