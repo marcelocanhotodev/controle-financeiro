@@ -6,8 +6,11 @@ import {
   deDataDoBanco,
   formatarDiaMes,
   hoje,
+  abreviacaoDoMes,
+  deslocarMes,
   limitesDoMes,
   nomeDoMes,
+  nomeDoMesSozinho,
   paraChaveDeData,
   paraChaveDeMes,
   paraDataDoBanco,
@@ -45,5 +48,17 @@ describe("timezone", () => {
     const { inicio, fim } = limitesDoMes({ ano: 2026, mes: 12 });
     expect(inicio.toISOString()).toBe("2026-12-01T00:00:00.000Z");
     expect(fim.toISOString()).toBe("2027-01-01T00:00:00.000Z");
+  });
+
+  it("deslocarMes atravessa a virada do ano nos dois sentidos", () => {
+    expect(deslocarMes({ ano: 2026, mes: 1 }, -1)).toEqual({ ano: 2025, mes: 12 });
+    expect(deslocarMes({ ano: 2026, mes: 10 }, -5)).toEqual({ ano: 2026, mes: 5 });
+    expect(deslocarMes({ ano: 2026, mes: 12 }, 1)).toEqual({ ano: 2027, mes: 1 });
+    expect(deslocarMes({ ano: 2027, mes: 2 }, -17)).toEqual({ ano: 2025, mes: 9 });
+  });
+
+  it("nome do mês sozinho e abreviado, para frases e para o gráfico", () => {
+    expect(nomeDoMesSozinho({ ano: 2026, mes: 9 })).toBe("setembro");
+    expect(abreviacaoDoMes({ ano: 2026, mes: 3 })).toBe("mar");
   });
 });

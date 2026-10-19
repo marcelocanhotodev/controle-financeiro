@@ -1,7 +1,9 @@
+# resumo Specification
+
 ## Purpose
 Resumo mensal do caixa do grupo: saldo, comparação com o mês anterior, histórico de seis meses, categorias e participação de cada pessoa.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Mês do Resumo compartilhado com Lançamentos
 O sistema SHALL oferecer no Resumo o mesmo seletor de mês da aba Lançamentos e SHALL manter o mês escolhido ao passar de uma aba para a outra.
@@ -15,6 +17,11 @@ O sistema SHALL oferecer no Resumo o mesmo seletor de mês da aba Lançamentos e
 - GIVEN a pessoa está vendo agosto de 2026 em Lançamentos
 - WHEN ela abre a aba Resumo
 - THEN o Resumo mostra agosto de 2026
+
+#### Scenario: Troca de grupo volta ao mês atual
+- GIVEN a pessoa está vendo setembro de 2026 no Resumo do grupo A
+- WHEN ela troca para o grupo B
+- THEN o Resumo mostra o mês atual do grupo B
 
 ### Requirement: Saldo, entradas e saídas do mês
 O sistema SHALL mostrar o saldo do mês e os totais de entradas e saídas do grupo ativo.
@@ -90,7 +97,7 @@ O sistema SHALL listar as saídas do mês agrupadas por categoria, da maior para
 - THEN aparece "Nenhuma saída registrada neste mês."
 
 ### Requirement: Totais por pessoa
-O sistema SHALL mostrar, para cada membro atual do grupo, o total de entradas e de saídas que ele registrou no mês.
+O sistema SHALL mostrar, para cada membro atual do grupo e para cada ex-membro com lançamento no mês, o total de entradas e de saídas que a pessoa registrou no mês.
 
 #### Scenario: Tabela por pessoa
 - GIVEN um grupo com Marcelo, Ana e Pedro
@@ -98,8 +105,25 @@ O sistema SHALL mostrar, para cada membro atual do grupo, o total de entradas e 
 - THEN há uma linha por pessoa com entradas e saídas do mês
 - AND quem não lançou nada aparece com R$ 0,00
 
+#### Scenario: Ex-membro com lançamento no mês
+- GIVEN Pedro saiu do grupo e tem lançamentos no mês selecionado
+- WHEN a seção "Quem registrou" é exibida
+- THEN há uma linha "Pedro (ex-membro)" com as entradas e saídas dele no mês
+- AND essa linha aparece com opacidade de 70%
+- AND o texto "(ex-membro)" identifica a linha sem depender da opacidade
+
+#### Scenario: Ex-membro sem lançamento no mês
+- GIVEN um ex-membro sem lançamentos no mês selecionado
+- WHEN a seção "Quem registrou" é exibida
+- THEN ele não aparece
+
+#### Scenario: Linhas fecham com os totais
+- GIVEN o Resumo de um mês qualquer
+- WHEN as linhas de "Quem registrou" são somadas
+- THEN a soma das entradas e a soma das saídas são iguais aos totais de entradas e saídas do mês
+
 ### Requirement: Estado vazio do grupo
-O sistema SHALL exibir um resumo coerente quando o grupo ainda não tem lançamentos.
+O sistema SHALL exibir um resumo coerente quando o grupo ainda não tem lançamentos e quando o mês selecionado não tem lançamentos.
 
 #### Scenario: Grupo novo
 - GIVEN um grupo recém-criado
@@ -107,3 +131,11 @@ O sistema SHALL exibir um resumo coerente quando o grupo ainda não tem lançame
 - THEN saldo, entradas e saídas aparecem como R$ 0,00
 - AND o gráfico mostra seis meses sem barras
 - AND um texto convida a registrar o primeiro lançamento
+
+#### Scenario: Mês vazio num grupo com histórico
+- GIVEN um grupo com lançamentos em outros meses e nenhum em setembro de 2026
+- WHEN o Resumo de setembro de 2026 é exibido
+- THEN saldo, entradas e saídas aparecem como R$ 0,00
+- AND o gráfico mostra as barras dos outros meses
+- AND aparece "Nenhum lançamento em setembro de 2026."
+- AND não aparece o convite para registrar o primeiro lançamento

@@ -114,6 +114,22 @@ export function nomeDoMes({ ano, mes }: MesCalendario): string {
   return `${NOMES_MESES[mes - 1]} de ${ano}`;
 }
 
+/** "outubro", para frases como "maiores que em outubro". */
+export function nomeDoMesSozinho({ mes }: MesCalendario): string {
+  return NOMES_MESES[mes - 1].toLowerCase();
+}
+
+/** "out", para o eixo do gráfico. */
+export function abreviacaoDoMes({ mes }: MesCalendario): string {
+  return NOMES_MESES[mes - 1].slice(0, 3).toLowerCase();
+}
+
+/** Mês `delta` meses depois (ou antes, com `delta` negativo). */
+export function deslocarMes({ ano, mes }: MesCalendario, delta: number): MesCalendario {
+  const total = ano * 12 + (mes - 1) + delta;
+  return { ano: Math.floor(total / 12), mes: (total % 12) + 1 };
+}
+
 /** Primeiro dia do mês e primeiro dia do mês seguinte, para `data >= inicio
  * AND data < fim` em colunas `@db.Date`. */
 export function limitesDoMes({ ano, mes }: MesCalendario): { inicio: Date; fim: Date } {

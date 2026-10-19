@@ -119,3 +119,18 @@
 .quadro-rolavel {
   overflow-x: auto;
 }
+
+/* Cores do gráfico do Resumo (Recharts) pelos tokens, para seguir o tema:
+   atributos SVG não aceitam var(), mas propriedades CSS aceitam. */
+.grafico .recharts-cartesian-axis-tick-value {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+.grafico .recharts-cartesian-grid line {
+  stroke: var(--line);
+}
+
+.grafico .recharts-tooltip-cursor {
+  fill: var(--fg);
+}
