@@ -10,9 +10,9 @@
 // Nomes de models, campos e enums em português; tabelas em snake_case no
 // plural via @@map.
 //
-// Change estrutura-base: só generator e datasource. Cada change seguinte
-// (usuarios-e-grupos, lancamentos) acrescenta os próprios models e a própria
-// migração.
+// estrutura-base: generator e datasource. usuarios-e-grupos: Usuario, Grupo,
+// Participacao, Convite e TokenSenha. lancamentos acrescenta os próprios
+// models e a própria migração.
 // ============================================================================
 
 generator client {
@@ -34,4 +34,113 @@ datasource db {
   // statements do Prisma Migrate. Em dev local, é igual a DATABASE_URL. Ver
   // docs/deploy-producao.md.
   directUrl = env("DIRECT_URL")
+}
+
+// ============================================================================
+// usuarios-e-grupos — contas, grupos, participações, convites e links de
+// definir senha. Ver openspec/changes/usuarios-e-grupos/design.md.
+// ============================================================================
+
+enum PapelGrupo {
+  ADMIN
+  MEMBRO
+}
+
+enum EnvioConviteStatus {
+  ENVIADO
+  FALHOU
+}
+
+enum FinalidadeTokenSenha {
+  CRIAR
+  REDEFINIR
+}
+
+model Usuario {
+  id              Int       @id @default(autoincrement())
+  nome            String
+  email           String    @unique // sempre em minúsculas
+  senhaHash       String
+  // Grupo ativo da conta (vale para todos os aparelhos). Sem FK de propósito:
+  // getGrupoAtual() confere a participação e aplica o fallback.
+  grupoAtivoId    Int?
+  // Sessões com `emitidoEm` anterior a esta data são recusadas por
+  // getUsuarioAtual() — é assim que redefinir a senha derruba as sessões.
+  senhaAlteradaEm DateTime?
+  criadoEm        DateTime  @default(now())
+
+  participacoes   Participacao[]
+  convitesCriados Convite[]      @relation("ConviteCriadoPor")
+  tokensSenha     TokenSenha[]
+
+  @@map("usuarios")
+}
+
+model Grupo {
+  id       Int      @id @default(autoincrement())
+  nome     String
+  codigo   String   @unique // sempre em maiúsculas
+  criadoEm DateTime @default(now())
+
+  participacoes Participacao[]
+  convites      Convite[]
+
+  @@map("grupos")
+}
+
+model Participacao {
+  usuarioId Int
+  grupoId   Int
+  papel     PapelGrupo
+  entrouEm  DateTime   @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  grupo   Grupo   @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, grupoId])
+  @@index([grupoId])
+  @@map("participacoes")
+}
+
+model Convite {
+  id          Int                 @id @default(autoincrement())
+  grupoId     Int
+  email       String // minúsculas
+  token       String              @unique
+  criadoPorId Int
+  criadoEm    DateTime            @default(now())
+  expiraEm    DateTime
+  aceitoEm    DateTime?
+  envioStatus EnvioConviteStatus?
+  envioErro   String?
+  envioEm     DateTime?
+
+  grupo       Grupo        @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  criadoPor   Usuario      @relation("ConviteCriadoPor", fields: [criadoPorId], references: [id], onDelete: Restrict)
+  tokensSenha TokenSenha[]
+
+  @@index([grupoId])
+  @@map("convites")
+}
+
+// Link de definir senha (CRIAR: conta por convite; REDEFINIR: "Esqueci minha
+// senha"). Só o sha256 do valor fica no banco — o valor puro existe apenas no
+// e-mail enviado.
+model TokenSenha {
+  id         Int                  @id @default(autoincrement())
+  tokenHash  String               @unique
+  finalidade FinalidadeTokenSenha
+  email      String // minúsculas
+  usuarioId  Int? // REDEFINIR
+  conviteId  Int? // CRIAR
+  criadoEm   DateTime             @default(now())
+  expiraEm   DateTime
+  usadoEm    DateTime?
+
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  convite Convite? @relation(fields: [conviteId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@index([conviteId])
+  @@map("tokens_senha")
 }

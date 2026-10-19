@@ -20,6 +20,10 @@ jobs:
     # workflow e é descartado no final. Nunca é o banco de produção: o CI
     # não faz deploy nem altera dados reais (isso é do deploy-migrations.yml).
     # Modelo: .github/workflows/ci.yml do matilha-app.
+    #
+    # AUTH_SECRET, NEXTAUTH_URL e SMTP_* do servidor dos testes de ponta a
+    # ponta vêm do playwright.config.ts (valores só de teste, com um SMTP
+    # falso local) — nenhum e-mail sai do CI.
     env:
       DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/caixa_comum_ci"
       DIRECT_URL: "postgresql://postgres:postgres@localhost:5432/caixa_comum_ci"

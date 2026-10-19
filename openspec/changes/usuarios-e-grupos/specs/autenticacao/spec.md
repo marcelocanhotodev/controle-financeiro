@@ -105,6 +105,11 @@ O sistema SHALL apresentar o acesso em duas opções, "Entrar" e "Criar conta", 
 - THEN a mensagem de erro aparece dentro do formulário com `role="alert"`
 - AND o foco vai para o primeiro campo com problema
 
+#### Scenario: Link para recuperar a senha
+- GIVEN a tela de login na opção "Entrar"
+- WHEN ela é exibida
+- THEN existe o link "Esqueci minha senha", que leva à tela de recuperação de senha
+
 ### Requirement: Login por e-mail e senha
 O sistema SHALL autenticar a pessoa com e-mail e senha, sem diferenciar maiúsculas de minúsculas no e-mail.
 
@@ -151,5 +156,65 @@ O sistema SHALL exigir autenticação em toda página interna e em toda ação q
 
 #### Scenario: Páginas públicas
 - GIVEN uma pessoa não autenticada
-- WHEN ela abre a tela de login, a de cadastro ou um link de convite
+- WHEN ela abre a tela de login, a de cadastro, a de recuperação de senha, um link de definir senha ou um link de convite
 - THEN a página é exibida sem exigir login
+
+### Requirement: Recuperação de senha
+O sistema SHALL permitir que a pessoa que esqueceu a senha peça, pelo e-mail da conta, um link de definir senha válido por 1 hora, e SHALL dar a mesma resposta exista ou não uma conta com o e-mail informado.
+
+#### Scenario: Pedir link com conta existente
+- GIVEN existe uma conta com o e-mail "ana@exemplo.com"
+- WHEN alguém informa "ANA@exemplo.com" na tela de recuperação de senha
+- THEN o endereço recebe um e-mail com um link de definir senha válido por 1 hora
+- AND o sistema mostra "Se houver uma conta com este e-mail, enviamos um link."
+
+#### Scenario: Pedir link sem conta
+- GIVEN não existe conta com o e-mail "ninguem@exemplo.com"
+- WHEN alguém o informa na tela de recuperação de senha
+- THEN nenhum e-mail é enviado
+- AND o sistema mostra a mesma mensagem do caso com conta
+
+#### Scenario: Pedidos seguidos
+- GIVEN um link de redefinição foi pedido para uma conta há menos de 60 segundos
+- WHEN alguém pede de novo para o mesmo e-mail
+- THEN nenhum e-mail novo é enviado
+- AND o sistema mostra a mesma mensagem
+
+#### Scenario: Redefinir a senha pelo link
+- GIVEN Ana recebeu um link de redefinição válido
+- WHEN ela o abre e envia uma nova senha com pelo menos 8 caracteres
+- THEN a nova senha passa a valer e a antiga deixa de funcionar
+- AND Ana entra no sistema já autenticada
+- AND os outros links de redefinição pedidos por ela deixam de funcionar
+
+#### Scenario: Nova senha curta
+- GIVEN um link de redefinição válido
+- WHEN a pessoa envia uma senha com menos de 8 caracteres
+- THEN o sistema mostra que a senha precisa ter pelo menos 8 caracteres
+- AND a senha não muda
+
+### Requirement: Link de definir senha
+O sistema SHALL usar um mesmo tipo de link para definir senha na criação de conta por convite e na recuperação de senha, e SHALL tornar cada link de uso único e guardar apenas um hash dele.
+
+#### Scenario: Link usado, expirado ou inexistente
+- GIVEN um link de definir senha já usado, vencido ou com valor que não existe
+- WHEN alguém o abre
+- THEN o sistema mostra "Este link não é mais válido."
+- AND, se o link era de recuperação de senha, oferece pedir um novo
+- AND, se o link era de convite, orienta a pedir um novo convite a quem administra o grupo
+- AND nenhuma senha é definida
+
+#### Scenario: Link fora do banco
+- GIVEN um link de definir senha foi enviado
+- WHEN o banco de dados é inspecionado
+- THEN o valor do link não aparece em nenhum registro, apenas um hash dele
+
+### Requirement: Sessões encerradas ao redefinir a senha
+O sistema SHALL encerrar, a partir da próxima ação, todas as sessões da pessoa abertas antes da redefinição de senha, exceto a sessão iniciada pela própria redefinição.
+
+#### Scenario: Outro aparelho perde a sessão
+- GIVEN Ana está autenticada no notebook
+- WHEN ela redefine a senha pelo link no celular
+- THEN o celular continua autenticado
+- AND a próxima página ou ação no notebook leva à tela de login
+- AND nenhum dado é lido nem alterado por essa ação

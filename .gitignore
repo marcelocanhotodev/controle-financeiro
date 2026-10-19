@@ -31,3 +31,7 @@ next-env.d.ts
 
 # prisma
 /prisma/migrations/**/migration.sql.bak
+
+# Sessão gerada pelos testes de ponta a ponta (e2e/autenticar.setup.ts)
+/e2e/.auth/
+/e2e/.emails/

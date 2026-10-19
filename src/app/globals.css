@@ -94,6 +94,23 @@
     @apply font-mono;
     font-variant-numeric: tabular-nums;
   }
+
+  /* Botões, como o `.btn` do protótipo: principal, fantasma e de perigo. */
+  .botao {
+    @apply inline-flex min-h-[40px] cursor-pointer items-center justify-center rounded-lg border border-transparent bg-destaque px-4 py-[9px] font-semibold text-destaque-texto hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .botao-fantasma {
+    @apply border-linha bg-transparent text-texto hover:bg-surface-2 hover:brightness-100;
+  }
+
+  .botao-perigo {
+    @apply border-saida bg-transparent text-saida hover:brightness-100;
+  }
+
+  .botao-pequeno {
+    @apply min-h-[32px] px-2.5 py-[5px] text-[0.85rem];
+  }
 }
 
 /* Fora de @layer de propósito: classes em @layer só entram no CSS final se

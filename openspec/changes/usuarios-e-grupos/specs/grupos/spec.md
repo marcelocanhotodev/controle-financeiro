@@ -55,6 +55,24 @@ O sistema SHALL permitir que a pessoa participe de vários grupos e escolha qual
 - WHEN ela faz uma requisição direta ao servidor para tornar esse grupo o ativo
 - THEN o grupo ativo não muda
 
+#### Scenario: Mesmo grupo ativo em todos os aparelhos
+- GIVEN a pessoa está com o app aberto no celular e no notebook, com "Finanças da Casa" ativo
+- WHEN ela escolhe "Viagem de Dezembro" no celular
+- THEN a próxima página aberta no notebook mostra "Viagem de Dezembro"
+
+#### Scenario: Grupo ativo deixa de valer e há outro grupo
+- GIVEN Pedro participa de "Finanças da Casa" e "Viagem de Dezembro", com "Viagem de Dezembro" ativo
+- WHEN ele é removido de "Viagem de Dezembro" e em seguida abre qualquer aba
+- THEN o grupo ativo passa a ser o grupo em que ele entrou primeiro entre os que ainda participa
+- AND o sistema mostra uma vez o aviso `Você não participa mais de "Viagem de Dezembro".`
+- AND o seletor do topo mostra o novo grupo ativo
+
+#### Scenario: Sair do grupo ativo
+- GIVEN Ana participa de "Finanças da Casa" e "Viagem de Dezembro", com "Viagem de Dezembro" ativo
+- WHEN ela sai de "Viagem de Dezembro"
+- THEN o grupo ativo passa a ser o grupo em que ela entrou primeiro entre os que ainda participa
+- AND o sistema mostra apenas "Você saiu do grupo."
+
 ### Requirement: Entrada em grupo por código
 O sistema SHALL permitir que uma pessoa autenticada entre em um grupo existente informando o código.
 
@@ -86,6 +104,18 @@ O sistema SHALL permitir que Administradores convidem pessoas por e-mail, envian
 - AND o sistema mostra "Convite enviado para pedro@exemplo.com."
 - AND Pedro só passa a participar do grupo quando aceitar o convite
 
+#### Scenario: Administrador não define senha
+- GIVEN o formulário de convite
+- WHEN ele é exibido
+- THEN pede apenas o e-mail da pessoa convidada
+- AND nenhuma conta é criada no momento do convite
+
+#### Scenario: Link conforme a pessoa tenha conta
+- GIVEN "pedro@exemplo.com" tem conta e "joana@exemplo.com" não tem
+- WHEN a Administradora convida os dois
+- THEN o e-mail de Pedro traz o link do convite
+- AND o e-mail de Joana traz um link de definir senha, válido pelo mesmo prazo do convite
+
 #### Scenario: Mesma resposta com ou sem conta
 - GIVEN um e-mail que já tem conta e outro que não tem, nenhum dos dois no grupo
 - WHEN a Administradora convida cada um deles
@@ -115,7 +145,7 @@ O sistema SHALL permitir que Administradores convidem pessoas por e-mail, envian
 - AND o sistema mostra que o e-mail não pôde ser enviado e que é possível reenviar pela lista de membros
 
 ### Requirement: Aceite de convite
-O sistema SHALL permitir que a pessoa dona do e-mail convidado aceite o convite pelo link, tenha ela conta ou não, e SHALL torná-la Membro do grupo só depois do aceite.
+O sistema SHALL permitir que a pessoa dona do e-mail convidado aceite o convite pelo link recebido (o link do convite, se ela tem conta, ou o link de definir senha, se não tem), e SHALL torná-la Membro do grupo só depois do aceite.
 
 #### Scenario: Aceitar já autenticado com o mesmo e-mail
 - GIVEN Pedro está autenticado como "pedro@exemplo.com" e tem um convite válido para "Finanças da Casa"
@@ -131,11 +161,25 @@ O sistema SHALL permitir que a pessoa dona do e-mail convidado aceite o convite 
 - AND depois de entrar volta ao convite para aceitá-lo
 
 #### Scenario: Aceitar sem conta
-- GIVEN "joana@exemplo.com" não tem conta e recebeu um convite válido
-- WHEN ela abre o link do convite
-- THEN vê o formulário de cadastro com o e-mail já preenchido e sem poder alterá-lo
-- AND ao concluir o cadastro passa a ser Membro do grupo, já autenticada
+- GIVEN "joana@exemplo.com" não tem conta e recebeu o link de definir senha do convite para "Finanças da Casa"
+- WHEN ela abre o link
+- THEN vê o e-mail do convite sem poder alterá-lo e um formulário com nome e senha
+- AND ao enviar nome e senha com pelo menos 8 caracteres, a conta é criada com o e-mail do convite
+- AND ela passa a ser Membro de "Finanças da Casa", com esse grupo ativo, já autenticada
 - AND nenhum grupo "Grupo de Joana" é criado
+- AND o link deixa de funcionar
+
+#### Scenario: E-mail do convite não pode ser trocado
+- GIVEN o link de definir senha de um convite para "joana@exemplo.com"
+- WHEN alguém faz uma requisição direta ao servidor enviando outro e-mail junto do nome e da senha
+- THEN o e-mail enviado é ignorado
+- AND a conta, se criada, usa "joana@exemplo.com"
+
+#### Scenario: Conta criada antes de usar o link
+- GIVEN Joana recebeu o link de definir senha do convite e depois criou uma conta pela tela "Criar conta"
+- WHEN ela abre o link de definir senha
+- THEN o sistema mostra "Este e-mail já tem conta. Entre para aceitar o convite."
+- AND depois de entrar ela vai para o convite e pode aceitá-lo
 
 #### Scenario: Autenticado com outro e-mail
 - GIVEN Ana está autenticada como "ana@exemplo.com"
@@ -162,12 +206,13 @@ O sistema SHALL permitir que Administradores reenviem e cancelem convites penden
 - GIVEN um convite pendente na lista de membros
 - WHEN a Administradora toca em "Reenviar"
 - THEN o e-mail é enviado de novo e a validade volta a ser de 7 dias
+- AND, se o e-mail continua sem conta, o novo e-mail traz um novo link de definir senha e o anterior deixa de funcionar
 
 #### Scenario: Cancelar
 - GIVEN um convite pendente na lista de membros
 - WHEN a Administradora toca em "Cancelar convite"
 - THEN o convite sai da lista
-- AND o link enviado deixa de funcionar
+- AND o link enviado deixa de funcionar, seja o link do convite, seja o de definir senha
 
 ### Requirement: Lista de membros
 O sistema SHALL mostrar a todos os membros a lista de participantes, com nome, e-mail e papel, e SHALL mostrar os convites pendentes apenas aos Administradores.
@@ -224,8 +269,9 @@ O sistema SHALL permitir que um Administrador remova outro membro, pedindo confi
 #### Scenario: Removido com o app aberto
 - GIVEN Pedro está com o grupo aberto em outro aparelho
 - WHEN ele é removido e em seguida tenta abrir qualquer aba desse grupo
-- THEN o sistema recusa, sem mostrar dados do grupo
+- THEN o sistema não mostra dados desse grupo
 - AND ele não precisa sair e entrar de novo para que a remoção valha
+- AND ele vê outro grupo do qual participa, com o aviso de que não participa mais do grupo anterior, ou o estado "sem grupo" se não restar nenhum
 
 ### Requirement: Saída do grupo
 O sistema SHALL permitir que a pessoa saia de um grupo, pedindo confirmação, e SHALL manter o grupo consistente depois da saída.

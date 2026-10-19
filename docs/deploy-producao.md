@@ -64,15 +64,35 @@ Vercel **e** os Secrets do GitHub (seção 3), e faça um novo deploy.
    - `DATABASE_URL` → connection string do **pooler**, porta 6543 (seção 1.3)
    - `DIRECT_URL` → connection string **direta**, porta 5432 (seção 1.4) —
      diferente de `DATABASE_URL`
+   - `AUTH_SECRET` → valor novo gerado com `openssl rand -base64 32` (pelo
+     menos 32 caracteres; nunca o default de dev `dev-secret-nao-usar-em-producao`)
+   - `NEXTAUTH_URL` → a URL final de produção (`https://...`), usada também
+     nos links dos e-mails
+   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` e `EMAIL_FROM` →
+     servidor de e-mail (seção 2.1)
 3. Não marque **Preview** apontando para o banco de produção. Se quiser
    previews com banco, crie um segundo projeto Supabase só para isso.
 4. Nunca cole esses valores em mensagens de commit, PRs, issues ou logs.
 5. Variável nova ou alterada só vale no próximo deploy.
 
-As duas são validadas quando o servidor sobe (`src/lib/env.ts`): se faltar
+Todas são validadas quando o servidor sobe (`src/lib/env.ts`): se faltar
 alguma ou o formato estiver errado, o processo não inicia e o log mostra
 `[env] Configuração de ambiente inválida` com o nome da variável — nunca o
 valor.
+
+### 2.1 E-mail (SMTP)
+
+Os convites para grupos e os links de definir senha (criação de conta por
+convite e "Esqueci minha senha") saem por SMTP. Sem e-mail em produção,
+ninguém consegue redefinir a senha nem criar conta por convite, por isso as
+cinco variáveis são obrigatórias em produção.
+
+Com uma conta Gmail:
+1. Ative a verificação em duas etapas na conta.
+2. Em **Conta Google → Segurança → Senhas de app**, crie uma senha de app.
+3. Cadastre `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`,
+   `SMTP_USER=<endereço da conta>`, `SMTP_PASS=<senha de app de 16 caracteres>`
+   e `EMAIL_FROM=Caixa Comum <endereço da conta>`.
 
 ## 3. Migrations do banco
 
@@ -135,6 +155,8 @@ produção:
 - [ ] `DATABASE_URL` = connection string do **pooler** (porta 6543, usuário `postgres.<referencia>`, `?pgbouncer=true`)
 - [ ] `DIRECT_URL` = connection string **direta** (porta 5432) — diferente de `DATABASE_URL`
 - [ ] As duas variáveis cadastradas em **Production** na Vercel
+- [ ] `AUTH_SECRET` novo (32+ caracteres) e `NEXTAUTH_URL` com a URL de produção
+- [ ] `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` e `EMAIL_FROM` cadastradas (seção 2.1)
 - [ ] `PROD_DATABASE_URL`/`PROD_DIRECT_URL` cadastrados como Secrets no GitHub
 - [ ] Push na `main` → job "Migrations em produção" verde na aba Actions
 - [ ] URL de produção abre em HTTPS com o topo e as abas

@@ -40,6 +40,9 @@ services:
       # Sem pooler em dev — DIRECT_URL (usada só por `prisma migrate`) é
       # sempre igual a DATABASE_URL aqui. Ver prisma/schema.prisma.
       DIRECT_URL: postgresql://postgres:postgres@db:5432/caixa_comum?schema=public
+      # Default só de dev — src/lib/env.ts recusa este valor em produção.
+      AUTH_SECRET: ${AUTH_SECRET:-dev-secret-nao-usar-em-producao}
+      NEXTAUTH_URL: http://localhost:3000
       # Datas de lançamento são do calendário de America/Sao_Paulo — o
       # Dockerfile.dev já fixa o fuso; repetido aqui como documentação.
       TZ: America/Sao_Paulo
@@ -50,9 +53,9 @@ services:
       - ./:/app
       - /app/node_modules
       - /app/.next
-    # Sem `prisma generate` aqui enquanto o schema não tiver models (o Prisma
-    # 5 recusa gerar sem nenhum) — volta na change usuarios-e-grupos.
-    command: npm run dev
+    # Gera o Prisma Client toda vez que sobe (schema pode ter mudado) e então
+    # inicia o servidor de dev com hot reload.
+    command: sh -c "npx prisma generate && npm run dev"
 
   # Interface web para consultar/editar os dados do Postgres.
   # Acesse em http://localhost:5050 (login: admin@admin.com / admin).

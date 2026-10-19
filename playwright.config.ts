@@ -8,7 +8,12 @@ import { defineConfig, devices } from "@playwright/test";
 //
 // No CI, o workflow já roda `npm run build` antes; localmente o webServer
 // faz o build sozinho (ou reaproveita um servidor já aberto na porta 3000).
+//
+// Toda página interna exige login: o projeto "autenticacao" cria uma conta
+// e guarda a sessão (e2e/autenticar.setup.ts), e os dois projetos partem dela.
 const PORTA = 3000;
+const ARQUIVO_SESSAO = "e2e/.auth/pessoa.json";
+const PORTA_SMTP = 2525;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -24,9 +29,16 @@ export default defineConfig({
   },
   projects: [
     {
+      name: "autenticacao",
+      testMatch: /autenticar\.setup\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       name: "celular",
+      dependencies: ["autenticacao"],
       use: {
         ...devices["Desktop Chrome"],
+        storageState: ARQUIVO_SESSAO,
         viewport: { width: 390, height: 844 },
         isMobile: true,
         hasTouch: true,
@@ -34,15 +46,36 @@ export default defineConfig({
     },
     {
       name: "desktop",
-      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
+      dependencies: ["autenticacao"],
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 }, storageState: ARQUIVO_SESSAO },
     },
   ],
-  webServer: {
-    command: process.env.CI ? "npm run start" : "npm run build && npm run start",
-    url: `http://localhost:${PORTA}`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 240_000,
-    // Liga as páginas de exemplo de src/app/teste/, que devolvem 404 sem isso.
-    env: { PAGINAS_DE_TESTE: "1" },
-  },
+  webServer: [
+    // SMTP falso: recebe os e-mails do app para os testes lerem os links
+    // (e2e/smtp-falso.mjs, e2e/caixa-de-entrada.ts).
+    {
+      command: "node e2e/smtp-falso.mjs",
+      port: PORTA_SMTP,
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      command: process.env.CI ? "npm run start" : "npm run build && npm run start",
+      url: `http://localhost:${PORTA}`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 240_000,
+      env: {
+        // Liga as páginas de exemplo de src/app/teste/, que devolvem 404 sem isso.
+        PAGINAS_DE_TESTE: "1",
+        // `next start` roda com NODE_ENV=production, e src/lib/env.ts exige
+        // estas variáveis em produção. Valores só de teste; o SMTP é o falso.
+        AUTH_SECRET: process.env.AUTH_SECRET ?? "segredo-dos-testes-e2e-com-mais-de-32-caracteres",
+        NEXTAUTH_URL: `http://localhost:${PORTA}`,
+        SMTP_HOST: "localhost",
+        SMTP_PORT: String(PORTA_SMTP),
+        SMTP_USER: "e2e@caixa.test",
+        SMTP_PASS: "e2e",
+        EMAIL_FROM: "Caixa Comum <e2e@caixa.test>",
+      },
+    },
+  ],
 });

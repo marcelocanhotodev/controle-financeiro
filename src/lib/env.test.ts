@@ -1,12 +1,32 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { parseEnv, assertEnv, type Env } from "@/lib/env";
+import { parseEnv, assertEnv, AUTH_SECRET_DEV_DEFAULT, type Env } from "@/lib/env";
 
 // Base de env válida, reutilizada e sobrescrita por cada teste.
 const ENV_VALIDO: NodeJS.ProcessEnv = {
   DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/caixa_comum?schema=public",
   DIRECT_URL: "postgresql://postgres:postgres@localhost:5432/caixa_comum?schema=public",
+  NEXTAUTH_URL: "http://localhost:3000",
+  AUTH_SECRET: "x".repeat(40),
   NODE_ENV: "development",
 };
+
+// Produção completa e válida: AUTH_SECRET forte e todas as SMTP_*.
+const ENV_PRODUCAO: NodeJS.ProcessEnv = {
+  ...ENV_VALIDO,
+  NODE_ENV: "production",
+  AUTH_SECRET: "y".repeat(44),
+  SMTP_HOST: "smtp.gmail.com",
+  SMTP_PORT: "465",
+  SMTP_USER: "caixa.comum@gmail.com",
+  SMTP_PASS: "senha-de-app-teste",
+  EMAIL_FROM: "Caixa Comum <caixa.comum@gmail.com>",
+};
+
+function sem(source: NodeJS.ProcessEnv, variavel: string): NodeJS.ProcessEnv {
+  const copia = { ...source };
+  delete copia[variavel];
+  return copia;
+}
 
 function mensagensPara(source: NodeJS.ProcessEnv) {
   const result = parseEnv(source);
@@ -45,6 +65,48 @@ describe("parseEnv", () => {
   it("falha quando DIRECT_URL não é uma connection string Postgres válida", () => {
     const issues = mensagensPara({ ...ENV_VALIDO, DIRECT_URL: "mysql://localhost/caixa" });
     expect(issues?.some((i) => i.variable === "DIRECT_URL")).toBe(true);
+  });
+
+  it.each(["AUTH_SECRET", "NEXTAUTH_URL"])("falha quando %s está ausente, identificando a variável", (variavel) => {
+    const issues = mensagensPara(sem(ENV_VALIDO, variavel));
+    expect(issues?.some((i) => i.variable === variavel)).toBe(true);
+  });
+
+  it("falha quando NEXTAUTH_URL não é uma URL válida", () => {
+    const issues = mensagensPara({ ...ENV_VALIDO, NEXTAUTH_URL: "localhost" });
+    expect(issues?.some((i) => i.variable === "NEXTAUTH_URL")).toBe(true);
+  });
+
+  it("aceita o AUTH_SECRET default de dev e a ausência de SMTP_* / EMAIL_FROM fora de produção", () => {
+    const result = parseEnv({ ...ENV_VALIDO, AUTH_SECRET: AUTH_SECRET_DEV_DEFAULT });
+    expect(result.success).toBe(true);
+  });
+
+  it("aceita produção com AUTH_SECRET forte e todas as SMTP_* / EMAIL_FROM", () => {
+    expect(parseEnv(ENV_PRODUCAO).success).toBe(true);
+  });
+
+  it("falha quando AUTH_SECRET usa o valor default de dev em produção", () => {
+    const issues = mensagensPara({ ...ENV_PRODUCAO, AUTH_SECRET: AUTH_SECRET_DEV_DEFAULT });
+    expect(issues?.some((i) => i.variable === "AUTH_SECRET")).toBe(true);
+  });
+
+  it("falha quando AUTH_SECRET tem menos de 32 caracteres em produção", () => {
+    const issues = mensagensPara({ ...ENV_PRODUCAO, AUTH_SECRET: "curto-demais" });
+    expect(issues?.some((i) => i.variable === "AUTH_SECRET")).toBe(true);
+  });
+
+  it.each(["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "EMAIL_FROM"])(
+    "falha quando %s está ausente em produção",
+    (variavel) => {
+      const issues = mensagensPara(sem(ENV_PRODUCAO, variavel));
+      expect(issues?.some((i) => i.variable === variavel)).toBe(true);
+    },
+  );
+
+  it("falha quando SMTP_PORT não é um número de porta", () => {
+    const issues = mensagensPara({ ...ENV_PRODUCAO, SMTP_PORT: "smtp" });
+    expect(issues?.some((i) => i.variable === "SMTP_PORT")).toBe(true);
   });
 });
 
